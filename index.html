@@ -69,23 +69,6 @@
             box-shadow: none;
         }
         .btn-action:active { transform: scale(0.98); }
-        .btn-confirmar {
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: #ffffff;
-            border: none;
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 14px;
-            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-        }
         .step-box { display: none; animation: fadeIn 0.35s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .amigo-nome {
@@ -157,14 +140,7 @@
         .card-desejo-texto { font-size: 15px; color: #333; white-space: pre-wrap; line-height: 1.45; }
         .error-msg { color: #b71c1c; font-weight: bold; font-size: 13px; margin-top: 10px; display: none; }
         .footer-note { font-size: 12px; color: #888; margin-top: 20px; }
-        .recarregar-link {
-            display: inline-block;
-            margin-top: 6px;
-            font-size: 11px;
-            color: #1b5e20;
-            text-decoration: underline;
-            cursor: pointer;
-        }
+        .loading-box { padding: 24px 10px; color: #1b5e20; font-weight: 600; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -176,8 +152,13 @@
             💰 Valor do presente: <span id="valorTxt"></span>
         </div>
 
-        <!-- PRIMEIRA TELA AO ABRIR O LINK: SUGESTÃO OU FLAG -->
-        <div id="step1" class="step-box" style="display: block;">
+        <!-- CARREGANDO STATUS DO LINK -->
+        <div id="stepLoading" class="step-box" style="display: block;">
+            <div class="loading-box">🎄 Carregando seu sorteio...</div>
+        </div>
+
+        <!-- 1ª VEZ QUE ABRIU O LINK: SUGESTÃO OU FLAG -->
+        <div id="step1" class="step-box">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="welcomeSaudacao">Carregando...</p>
             <p style="font-size: 13px; color: #555;">Antes de revelar quem você tirou, cadastre sua sugestão de presente para facilitar a vida de quem te tirou! 🎁</p>
 
@@ -195,29 +176,25 @@
             <div id="errorInitial" class="error-msg"></div>
 
             <button id="btnRevelarEConfirmar" class="btn-action" onclick="revelarEConfirmar()">
-                🎁 Ver Meu Amigo Secreto e Confirmar
-            </button>
-
-            <button class="btn-action btn-outline" onclick="mostrarMenu()">
-                Já preenchi antes • Ir para o Menu
+                🎁 Ver Meu Amigo Secreto
             </button>
         </div>
 
-        <!-- MENU PRINCIPAL -->
+        <!-- 2ª VEZ OU MAIS QUE ABRIU O LINK: MENU PRINCIPAL -->
         <div id="stepMenu" class="step-box">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="menuSaudacao"></p>
             <p style="font-size: 13px; color: #666;">O que você deseja fazer agora?</p>
 
             <button class="btn-action btn-green" onclick="abrirListaPresentes()">
-                🎁 Ver Sugestão de Presente do meu amigo
+                🎁 Ver o que meu amigo deseja de presente
             </button>
 
             <button class="btn-action" onclick="exibirPasso2(true)">
-                🤫 Ver Meu Amigo Secreto de Novo
+                🤫 Ver novamente com quem eu saí
             </button>
 
             <button class="btn-action btn-outline" onclick="irParaPasso3(true)">
-                ✏️ Editar Minha Lista de Desejos
+                ✏️ Editar o que escrevi na minha lista
             </button>
         </div>
 
@@ -227,19 +204,15 @@
             <div style="font-size: 14px; color: #666; margin-top: 6px;">Seu Amigo Secreto é:</div>
             <div class="amigo-nome" id="amigoNome"></div>
             <div style="font-size: 22px; margin: 8px 0;">🤫🎉✨</div>
-            <p style="font-size: 12px; color: #1b5e20; font-weight: 600;">Guarde este segredo com carinho!</p>
+            <p style="font-size: 12px; color: #1b5e20; font-weight: 600;">Guarde este segredo com carinho! Sua visualização já foi registrada para o organizador. ✅</p>
 
             <div class="card-desejo">
                 <div class="card-desejo-titulo" id="revelacaoAmigoDesejoTitulo">🎁 Sugestão de presente do seu amigo secreto:</div>
                 <div class="card-desejo-texto" id="revelacaoAmigoDesejoTexto">Buscando na nuvem...</div>
             </div>
 
-            <a id="btnWhatsAppRevelacao" class="btn-confirmar" href="#" target="_blank" style="display: none;">
-                ✅ Abrir WhatsApp para Confirmar ao Organizador
-            </a>
-
-            <button id="btnVoltarMenuDePasso2" class="btn-action btn-outline" style="display: none;" onclick="mostrarMenu()">
-                ⬅ Voltar ao Menu
+            <button class="btn-action btn-outline" onclick="mostrarMenu()">
+                Ir para o Menu ➔
             </button>
         </div>
 
@@ -273,10 +246,7 @@
             </button>
         </div>
 
-        <div class="footer-note">
-            🎄 Brincadeira de Amigo Secreto • Boas Festas! 🎅<br>
-            <span class="recarregar-link" onclick="forcarAtualizacaoLink()">Atualizar dados do link</span>
-        </div>
+        <div class="footer-note">🎄 Brincadeira de Amigo Secreto • Boas Festas! 🎅</div>
     </div>
 
     <script>
@@ -294,7 +264,7 @@
         }
 
         function esconderTodasEtapas() {
-            ['step1', 'stepMenu', 'step2', 'step3', 'step4'].forEach(id => {
+            ['stepLoading', 'step1', 'stepMenu', 'step2', 'step3', 'step4'].forEach(id => {
                 document.getElementById(id).style.display = 'none';
             });
         }
@@ -349,10 +319,17 @@
                 .replace(/[^a-zA-Z0-9]/g, "");
         }
 
-        function getDbPath(nomePessoa) {
+        function getDesejoDbPath(nomePessoa) {
             const g = normalizarChave(parsedData ? parsedData.groupId : "default");
             const n = normalizarChave(nomePessoa);
             return `${FIREBASE_URL}/grupos/${g}/desejos/${n}.json`;
+        }
+
+        // Chave única por sorteio (grupo + participante + amigo sorteado) para registrar que abriu/confirmou
+        function getConfirmacaoDbPath() {
+            const g = normalizarChave(parsedData ? parsedData.groupId : "default");
+            const chaveSorteio = normalizarChave(parsedData.para) + "_" + normalizarChave(parsedData.amigo);
+            return `${FIREBASE_URL}/grupos/${g}/confirmados/${chaveSorteio}.json`;
         }
 
         function alternarSemSugestao() {
@@ -371,17 +348,23 @@
             }
         }
 
-        function montarUrlWhatsAppConfirmacao() {
-            if (!parsedData || !parsedData.adminTel) return null;
-            let tel = parsedData.adminTel.replace(/\D/g, '');
-            if (!tel) return null;
-            if (!tel.startsWith('55')) tel = '55' + tel;
-            const msg = encodeURIComponent(`Olá! Sou ${parsedData.para} e confirmo que já vi meu Amigo Secreto no site! 🤫🎄`);
-            return `https://api.whatsapp.com/send?phone=${tel}&text=${msg}`;
+        async function verificarSeJaAbriuAntes() {
+            try {
+                const url = getConfirmacaoDbPath() + "?t=" + Date.now();
+                const res = await fetch(url, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    return data !== null && data !== false;
+                }
+            } catch (e) {}
+            return false;
         }
 
-        function inicializarPagina() {
+        async function inicializarPagina() {
+            esconderTodasEtapas();
+            document.getElementById('stepLoading').style.display = 'block';
             resetarCamposFormulario();
+
             parsedData = parsePayload();
             if (!parsedData) {
                 esconderTodasEtapas();
@@ -397,15 +380,16 @@
                 document.getElementById('valorBox').style.display = 'none';
             }
 
-            document.getElementById('welcomeSaudacao').innerText = "Olá, " + parsedData.para + "! 🎅";
-            esconderTodasEtapas();
-            document.getElementById('step1').style.display = 'block';
-        }
-
-        function forcarAtualizacaoLink() {
-            const baseSemCache = window.location.href.split('?')[0];
-            const hashAtual = window.location.hash;
-            window.location.replace(`${baseSemCache}?v=${Date.now()}${hashAtual}`);
+            const jaAbriuAntes = await verificarSeJaAbriuAntes();
+            if (jaAbriuAntes) {
+                // 2ª vez ou mais: abre direto no menu
+                mostrarMenu();
+            } else {
+                // 1ª vez: abre na tela de sugerir presente
+                document.getElementById('welcomeSaudacao').innerText = "Olá, " + parsedData.para + "! 🎅";
+                esconderTodasEtapas();
+                document.getElementById('step1').style.display = 'block';
+            }
         }
 
         window.onload = inicializarPagina;
@@ -431,33 +415,39 @@
             btn.innerText = "Salvando e revelando...";
 
             try {
-                const res = await fetch(getDbPath(parsedData.para), {
+                // 1. Salva a sugestão (ou flag) no Firebase
+                const resDesejo = await fetch(getDesejoDbPath(parsedData.para), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     cache: 'no-store',
                     body: JSON.stringify(valorParaSalvar)
                 });
+                if (!resDesejo.ok) throw new Error("Erro ao salvar sugestão");
 
-                if (!res.ok) {
-                    throw new Error("Erro HTTP " + res.status);
-                }
+                // 2. Grava a confirmação para o aplicativo do organizador atualizar
+                const resConfirm = await fetch(getConfirmacaoDbPath(), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store',
+                    body: JSON.stringify({
+                        nome: parsedData.para,
+                        confirmado: true,
+                        timestamp: Date.now()
+                    })
+                });
+                if (!resConfirm.ok) throw new Error("Erro ao registrar confirmação");
             } catch (e) {
                 errorInitial.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorInitial.style.display = 'block';
                 btn.disabled = false;
-                btn.innerText = "🎁 Ver Meu Amigo Secreto e Confirmar";
+                btn.innerText = "🎁 Ver Meu Amigo Secreto";
                 return;
             }
 
             btn.disabled = false;
-            btn.innerText = "🎁 Ver Meu Amigo Secreto e Confirmar";
+            btn.innerText = "🎁 Ver Meu Amigo Secreto";
 
-            const urlWhats = montarUrlWhatsAppConfirmacao();
-            if (urlWhats) {
-                window.open(urlWhats, '_blank');
-            }
-
-            exibirPasso2(false, urlWhats);
+            exibirPasso2();
         }
 
         function mostrarMenu() {
@@ -466,23 +456,12 @@
             document.getElementById('stepMenu').style.display = 'block';
         }
 
-        async function exibirPasso2(veioDoMenu, urlWhatsInicial = null) {
+        async function exibirPasso2() {
             esconderTodasEtapas();
             document.getElementById('tiradorNome').innerText = "Olá, " + parsedData.para + "! 🎅";
             document.getElementById('amigoNome').innerText = "👉 " + parsedData.amigo + " 👈";
             document.getElementById('revelacaoAmigoDesejoTitulo').innerText = "🎁 O que " + parsedData.amigo + " quer ganhar:";
             document.getElementById('revelacaoAmigoDesejoTexto').innerText = "Buscando na nuvem...";
-
-            const btnWhats = document.getElementById('btnWhatsAppRevelacao');
-            const urlWhats = urlWhatsInicial || (!veioDoMenu ? montarUrlWhatsAppConfirmacao() : null);
-            if (urlWhats) {
-                btnWhats.href = urlWhats;
-                btnWhats.style.display = 'inline-flex';
-            } else {
-                btnWhats.style.display = 'none';
-            }
-
-            document.getElementById('btnVoltarMenuDePasso2').style.display = veioDoMenu ? 'block' : 'none';
             document.getElementById('step2').style.display = 'block';
 
             const amigoWish = await buscarDesejoNuvem(parsedData.amigo);
@@ -520,16 +499,13 @@
             btn.innerText = "Salvando na nuvem...";
 
             try {
-                const res = await fetch(getDbPath(parsedData.para), {
+                const res = await fetch(getDesejoDbPath(parsedData.para), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     cache: 'no-store',
                     body: JSON.stringify(desejo)
                 });
-
-                if (!res.ok) {
-                    throw new Error("Erro HTTP " + res.status);
-                }
+                if (!res.ok) throw new Error("Erro HTTP " + res.status);
             } catch (e) {
                 errorWish.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorWish.style.display = 'block';
@@ -541,12 +517,12 @@
             btn.disabled = false;
             btn.innerText = "Salvar Minha Lista 🎁";
 
-            abrirListaPresentes();
+            mostrarMenu();
         }
 
         async function buscarDesejoNuvem(nomePessoa) {
             try {
-                const url = getDbPath(nomePessoa) + "?t=" + Date.now();
+                const url = getDesejoDbPath(nomePessoa) + "?t=" + Date.now();
                 const res = await fetch(url, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
