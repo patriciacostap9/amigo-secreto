@@ -255,6 +255,7 @@
 
         let parsedData = null;
         let localDoneKey = "";
+        let jaConfirmadoNaNuvem = false;
 
         function capitalizarNome(str) {
             return (str || "")
@@ -335,6 +336,38 @@
             return `${FIREBASE_URL}/grupos/${g}/confirmados/${getChaveSorteio()}.json`;
         }
 
+        async function garantirConfirmacaoNaNuvem() {
+            if (!parsedData || jaConfirmadoNaNuvem) return;
+            try {
+                const urlConsulta = getConfirmacaoDbPath() + "?t=" + Date.now();
+                const resConsulta = await fetch(urlConsulta, { cache: 'no-store' });
+                if (resConsulta.ok) {
+                    const existente = await resConsulta.json();
+                    if (existente && existente.confirmado === true) {
+                        jaConfirmadoNaNuvem = true;
+                        return;
+                    }
+                }
+
+                const resSalvar = await fetch(getConfirmacaoDbPath(), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store',
+                    body: JSON.stringify({
+                        nome: parsedData.para,
+                        confirmado: true,
+                        timestamp: Date.now()
+                    })
+                });
+                if (resSalvar.ok) {
+                    jaConfirmadoNaNuvem = true;
+                    if (localDoneKey) {
+                        localStorage.setItem(localDoneKey, "1");
+                    }
+                }
+            } catch (e) {}
+        }
+
         function alternarSemSugestao() {
             const checked = document.getElementById('semSugestaoCheckbox').checked;
             const textarea = document.getElementById('initialWishlistInput');
@@ -371,6 +404,7 @@
         }
 
         async function inicializarPagina() {
+            jaConfirmadoNaNuvem = false;
             esconderTodasEtapas();
             document.getElementById('stepLoading').style.display = 'block';
             resetarCamposFormulario();
@@ -445,6 +479,7 @@
                 });
                 if (!resConfirm.ok) throw new Error("Erro ao registrar confirmação");
 
+                jaConfirmadoNaNuvem = true;
                 if (localDoneKey) {
                     localStorage.setItem(localDoneKey, "1");
                 }
@@ -475,6 +510,8 @@
             document.getElementById('revelacaoAmigoDesejoTitulo').innerText = "🎁 O que " + parsedData.amigo + " quer ganhar:";
             document.getElementById('revelacaoAmigoDesejoTexto').innerText = "Buscando na nuvem...";
             document.getElementById('step2').style.display = 'block';
+
+            garantirConfirmacaoNaNuvem();
 
             const amigoWish = await buscarDesejoNuvem(parsedData.amigo);
             document.getElementById('revelacaoAmigoDesejoTexto').innerText = formatarTextoDesejoAmigo(amigoWish, parsedData.amigo);
@@ -518,6 +555,8 @@
                     body: JSON.stringify(desejo)
                 });
                 if (!res.ok) throw new Error("Erro HTTP " + res.status);
+
+                await garantirConfirmacaoNaNuvem();
             } catch (e) {
                 errorWish.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorWish.style.display = 'block';
@@ -558,6 +597,8 @@
             document.getElementById('amigoDesejoTitulo').innerText = "🎁 O que " + parsedData.amigo + " (seu amigo secreto) quer ganhar:";
             document.getElementById('amigoDesejoTexto').innerText = "Buscando na nuvem...";
             document.getElementById('step4').style.display = 'block';
+
+            garantirConfirmacaoNaNuvem();
 
             const amigoWish = await buscarDesejoNuvem(parsedData.amigo);
             document.getElementById('amigoDesejoTexto').innerText = formatarTextoDesejoAmigo(amigoWish, parsedData.amigo);
