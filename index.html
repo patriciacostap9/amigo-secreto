@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>🎄 Sorteio de Amigo Secreto 🎁</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -106,6 +109,42 @@
             margin-top: 8px;
         }
         .wishlist-textarea:focus { border-color: #d4af37; }
+        .wishlist-textarea:disabled {
+            background: #f3f4f6;
+            border-color: #cbd5e1;
+            color: #888;
+        }
+        .sem-sugestao-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-align: left;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1b5e20;
+            cursor: pointer;
+        }
+        .sem-sugestao-box input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #1b5e20;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .aviso-retorno {
+            display: none;
+            background: #fffbf2;
+            border: 1px solid #d4af37;
+            color: #1b5e20;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            text-align: left;
+            line-height: 1.4;
+        }
         .card-desejo {
             background: #fffbf2;
             border: 1px dashed #d4af37;
@@ -118,6 +157,14 @@
         .card-desejo-texto { font-size: 15px; color: #333; white-space: pre-wrap; line-height: 1.45; }
         .error-msg { color: #b71c1c; font-weight: bold; font-size: 13px; margin-top: 10px; display: none; }
         .footer-note { font-size: 12px; color: #888; margin-top: 20px; }
+        .recarregar-link {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #1b5e20;
+            text-decoration: underline;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -129,12 +176,26 @@
             💰 Valor do presente: <span id="valorTxt"></span>
         </div>
 
-        <!-- BOAS-VINDAS (PRIMEIRA ABERTURA) -->
+        <!-- BOAS-VINDAS + SUGESTÃO ANTES DE REVELAR (PRIMEIRA ABERTURA) -->
         <div id="step1" class="step-box" style="display: block;">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="welcomeSaudacao">Carregando...</p>
-            <p style="font-size: 14px; color: #555;">Certifique-se de que ninguém está olhando para a sua tela e toque no botão abaixo para descobrir quem você tirou! 🤫</p>
-            <button class="btn-action" onclick="exibirPasso2(false)">
-                🎁 Descobrir Meu Amigo Secreto
+            <p style="font-size: 13px; color: #555;">Antes de revelar quem você tirou, cadastre sua sugestão de presente para facilitar a vida de quem te tirou! 🎁</p>
+
+            <textarea id="initialWishlistInput" class="wishlist-textarea" placeholder="Ex: Camisa tamanho M, Chocolate branco, Livro de suspense..."></textarea>
+
+            <label class="sem-sugestao-box" for="semSugestaoCheckbox">
+                <input type="checkbox" id="semSugestaoCheckbox" onchange="alternarSemSugestao()">
+                <span>Ainda não tenho sugestão de presente</span>
+            </label>
+
+            <div id="avisoSemSugestao" class="aviso-retorno">
+                ℹ️ Sem problemas! Se você marcar esta opção, poderá entrar por este mesmo link novamente a qualquer momento para cadastrar ou editar sua sugestão de presente quando souber.
+            </div>
+
+            <div id="errorInitial" class="error-msg"></div>
+
+            <button id="btnRevelarEConfirmar" class="btn-action" onclick="revelarEConfirmar()">
+                🎁 Ver Meu Amigo Secreto e Confirmar
             </button>
         </div>
 
@@ -143,7 +204,7 @@
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="menuSaudacao"></p>
             <p style="font-size: 13px; color: #666;">O que você deseja fazer agora?</p>
 
-            <button class="btn-action btn-green" onclick="abrirListaPresentes(false)">
+            <button class="btn-action btn-green" onclick="abrirListaPresentes()">
                 🎁 Ver Sugestão de Presente do meu amigo
             </button>
 
@@ -164,18 +225,24 @@
             <div style="font-size: 22px; margin: 8px 0;">🤫🎉✨</div>
             <p style="font-size: 12px; color: #1b5e20; font-weight: 600;">Guarde este segredo com carinho!</p>
 
-            <button id="btnAvancarPasso3" class="btn-action" onclick="irParaPasso3(false)">
-                Cadastrar Minha Lista de Desejos ➔
-            </button>
+            <div class="card-desejo">
+                <div class="card-desejo-titulo" id="revelacaoAmigoDesejoTitulo">🎁 Sugestão de presente do seu amigo secreto:</div>
+                <div class="card-desejo-texto" id="revelacaoAmigoDesejoTexto">Buscando na nuvem...</div>
+            </div>
+
+            <a id="btnWhatsAppRevelacao" class="btn-confirmar" href="#" target="_blank" style="display: none;">
+                ✅ Abrir WhatsApp para Confirmar ao Organizador
+            </a>
+
             <button id="btnVoltarMenuDePasso2" class="btn-action btn-outline" style="display: none;" onclick="mostrarMenu()">
                 ⬅ Voltar ao Menu
             </button>
         </div>
 
-        <!-- PASSO 3: CADASTRO / EDIÇÃO DA PRÓPRIA LISTA -->
+        <!-- PASSO 3: EDIÇÃO DA PRÓPRIA LISTA -->
         <div id="step3" class="step-box">
             <h2 style="font-size: 16px; color: #b71c1c; margin-bottom: 6px;">🎁 O que VOCÊ quer ganhar?</h2>
-            <p style="font-size: 12px; color: #555;">Escreva sua lista de sugestões de presente abaixo:</p>
+            <p style="font-size: 12px; color: #555;">Escreva ou atualize sua lista de sugestões de presente abaixo:</p>
 
             <textarea id="wishlistInput" class="wishlist-textarea" placeholder="Ex: Camisa tamanho M, Chocolate branco, Livro de suspense..."></textarea>
             <div id="errorWish" class="error-msg"></div>
@@ -197,24 +264,23 @@
                 <div class="card-desejo-texto" id="amigoDesejoTexto">Buscando na nuvem...</div>
             </div>
 
-            <a id="btnConfirmarWhatsApp" class="btn-confirmar" href="#" target="_blank" style="display: none;">
-                ✅ Confirmar no WhatsApp do Organizador
-            </a>
-
             <button class="btn-action btn-outline" onclick="mostrarMenu()">
                 ⬅ Voltar ao Menu
             </button>
         </div>
 
-        <div class="footer-note">🎄 Brincadeira de Amigo Secreto • Boas Festas! 🎅</div>
+        <div class="footer-note">
+            🎄 Brincadeira de Amigo Secreto • Boas Festas! 🎅<br>
+            <span class="recarregar-link" onclick="forcarAtualizacaoLink()">Atualizar dados do link</span>
+        </div>
     </div>
 
     <script>
         const FIREBASE_URL = "https://amigo-secreto-app-paty-default-rtdb.firebaseio.com";
+        const FLAG_SEM_SUGESTAO = "__SEM_SUGESTAO__";
 
         let parsedData = null;
         let storageKeyDone = "";
-        let isEdicao = false;
 
         function capitalizarNome(str) {
             return (str || "")
@@ -228,6 +294,21 @@
             ['step1', 'stepMenu', 'step2', 'step3', 'step4'].forEach(id => {
                 document.getElementById(id).style.display = 'none';
             });
+        }
+
+        function resetarCamposFormulario() {
+            const inputInicial = document.getElementById('initialWishlistInput');
+            const checkbox = document.getElementById('semSugestaoCheckbox');
+            const aviso = document.getElementById('avisoSemSugestao');
+            const erroInicial = document.getElementById('errorInitial');
+            const erroWish = document.getElementById('errorWish');
+
+            inputInicial.value = "";
+            inputInicial.disabled = false;
+            checkbox.checked = false;
+            aviso.style.display = 'none';
+            erroInicial.style.display = 'none';
+            erroWish.style.display = 'none';
         }
 
         function parsePayload() {
@@ -271,7 +352,33 @@
             return `${FIREBASE_URL}/grupos/${g}/desejos/${n}.json`;
         }
 
-        window.onload = async function() {
+        function alternarSemSugestao() {
+            const checked = document.getElementById('semSugestaoCheckbox').checked;
+            const textarea = document.getElementById('initialWishlistInput');
+            const aviso = document.getElementById('avisoSemSugestao');
+            const erro = document.getElementById('errorInitial');
+
+            erro.style.display = 'none';
+            textarea.disabled = checked;
+            if (checked) {
+                textarea.value = "";
+                aviso.style.display = 'block';
+            } else {
+                aviso.style.display = 'none';
+            }
+        }
+
+        function montarUrlWhatsAppConfirmacao() {
+            if (!parsedData || !parsedData.adminTel) return null;
+            let tel = parsedData.adminTel.replace(/\D/g, '');
+            if (!tel) return null;
+            if (!tel.startsWith('55')) tel = '55' + tel;
+            const msg = encodeURIComponent(`Olá! Sou ${parsedData.para} e confirmo que já vi meu Amigo Secreto no site! 🤫🎄`);
+            return `https://api.whatsapp.com/send?phone=${tel}&text=${msg}`;
+        }
+
+        async function inicializarPagina() {
+            resetarCamposFormulario();
             parsedData = parsePayload();
             if (!parsedData) {
                 esconderTodasEtapas();
@@ -283,9 +390,12 @@
             if (parsedData.valorPresente) {
                 document.getElementById('valorTxt').innerText = parsedData.valorPresente;
                 document.getElementById('valorBox').style.display = 'inline-block';
+            } else {
+                document.getElementById('valorBox').style.display = 'none';
             }
 
-            const baseKey = normalizarChave(parsedData.groupId) + "_" + normalizarChave(parsedData.para);
+            // Chave isolada por grupo + participante + amigo sorteado para evitar conflito entre links distintos
+            const baseKey = normalizarChave(parsedData.groupId) + "_" + normalizarChave(parsedData.para) + "_" + normalizarChave(parsedData.amigo);
             storageKeyDone = "amigo_done_" + baseKey;
 
             document.getElementById('welcomeSaudacao').innerText = "Olá, " + parsedData.para + "! 🎅";
@@ -295,8 +405,71 @@
             if (jaConcluiuLocal || desejoNuvem) {
                 localStorage.setItem(storageKeyDone, "1");
                 mostrarMenu();
+            } else {
+                esconderTodasEtapas();
+                document.getElementById('step1').style.display = 'block';
             }
-        };
+        }
+
+        function forcarAtualizacaoLink() {
+            const baseSemCache = window.location.href.split('?')[0];
+            const hashAtual = window.location.hash;
+            window.location.replace(`${baseSemCache}?v=${Date.now()}${hashAtual}`);
+        }
+
+        window.onload = inicializarPagina;
+        window.addEventListener('hashchange', inicializarPagina);
+
+        async function revelarEConfirmar() {
+            const semSugestao = document.getElementById('semSugestaoCheckbox').checked;
+            const desejoDigitado = document.getElementById('initialWishlistInput').value.trim();
+            const errorInitial = document.getElementById('errorInitial');
+            const btn = document.getElementById('btnRevelarEConfirmar');
+
+            errorInitial.style.display = 'none';
+
+            if (!semSugestao && (!desejoDigitado || desejoDigitado.length < 2)) {
+                errorInitial.innerText = "Escreva sua sugestão de presente ou marque \"Ainda não tenho sugestão de presente\" para continuar!";
+                errorInitial.style.display = 'block';
+                return;
+            }
+
+            const valorParaSalvar = semSugestao ? FLAG_SEM_SUGESTAO : desejoDigitado;
+
+            btn.disabled = true;
+            btn.innerText = "Salvando e revelando...";
+
+            try {
+                const res = await fetch(getDbPath(parsedData.para), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store',
+                    body: JSON.stringify(valorParaSalvar)
+                });
+
+                if (!res.ok) {
+                    throw new Error("Erro HTTP " + res.status);
+                }
+
+                localStorage.setItem(storageKeyDone, "1");
+            } catch (e) {
+                errorInitial.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
+                errorInitial.style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = "🎁 Ver Meu Amigo Secreto e Confirmar";
+                return;
+            }
+
+            btn.disabled = false;
+            btn.innerText = "🎁 Ver Meu Amigo Secreto e Confirmar";
+
+            const urlWhats = montarUrlWhatsAppConfirmacao();
+            if (urlWhats) {
+                window.open(urlWhats, '_blank');
+            }
+
+            exibirPasso2(false, urlWhats);
+        }
 
         function mostrarMenu() {
             esconderTodasEtapas();
@@ -304,30 +477,38 @@
             document.getElementById('stepMenu').style.display = 'block';
         }
 
-        function exibirPasso2(veioDoMenu) {
+        async function exibirPasso2(veioDoMenu, urlWhatsInicial = null) {
             esconderTodasEtapas();
             document.getElementById('tiradorNome').innerText = "Olá, " + parsedData.para + "! 🎅";
             document.getElementById('amigoNome').innerText = "👉 " + parsedData.amigo + " 👈";
+            document.getElementById('revelacaoAmigoDesejoTitulo').innerText = "🎁 O que " + parsedData.amigo + " quer ganhar:";
+            document.getElementById('revelacaoAmigoDesejoTexto').innerText = "Buscando na nuvem...";
 
-            if (veioDoMenu) {
-                document.getElementById('btnAvancarPasso3').style.display = 'none';
-                document.getElementById('btnVoltarMenuDePasso2').style.display = 'block';
+            const btnWhats = document.getElementById('btnWhatsAppRevelacao');
+            const urlWhats = urlWhatsInicial || (!veioDoMenu ? montarUrlWhatsAppConfirmacao() : null);
+            if (urlWhats) {
+                btnWhats.href = urlWhats;
+                btnWhats.style.display = 'inline-flex';
             } else {
-                document.getElementById('btnAvancarPasso3').style.display = 'block';
-                document.getElementById('btnVoltarMenuDePasso2').style.display = 'none';
+                btnWhats.style.display = 'none';
             }
 
+            document.getElementById('btnVoltarMenuDePasso2').style.display = veioDoMenu ? 'block' : 'none';
             document.getElementById('step2').style.display = 'block';
+
+            const amigoWish = await buscarDesejoNuvem(parsedData.amigo);
+            document.getElementById('revelacaoAmigoDesejoTexto').innerText = formatarTextoDesejoAmigo(amigoWish, parsedData.amigo);
         }
 
         async function irParaPasso3(veioDoMenu) {
-            isEdicao = veioDoMenu;
             esconderTodasEtapas();
             document.getElementById('errorWish').style.display = 'none';
 
             const existente = await buscarDesejoNuvem(parsedData.para);
-            if (existente) {
+            if (existente && existente !== FLAG_SEM_SUGESTAO) {
                 document.getElementById('wishlistInput').value = existente;
+            } else {
+                document.getElementById('wishlistInput').value = "";
             }
 
             document.getElementById('btnCancelarEdicao').style.display = veioDoMenu ? 'block' : 'none';
@@ -341,12 +522,10 @@
             errorWish.style.display = 'none';
 
             if (!desejo || desejo.length < 2) {
-                errorWish.innerText = "Por favor, escreva o que você quer ganhar antes de continuar!";
+                errorWish.innerText = "Por favor, escreva o que você quer ganhar antes de salvar!";
                 errorWish.style.display = 'block';
                 return;
             }
-
-            const jaConfirmouAntes = localStorage.getItem(storageKeyDone) === "1";
 
             btn.disabled = true;
             btn.innerText = "Salvando na nuvem...";
@@ -355,6 +534,7 @@
                 const res = await fetch(getDbPath(parsedData.para), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store',
                     body: JSON.stringify(desejo)
                 });
 
@@ -374,14 +554,13 @@
             btn.disabled = false;
             btn.innerText = "Salvar Minha Lista 🎁";
 
-            const mostrarConfirmacaoWhatsApp = !isEdicao && !jaConfirmouAntes;
-            abrirListaPresentes(mostrarConfirmacaoWhatsApp);
+            abrirListaPresentes();
         }
 
         async function buscarDesejoNuvem(nomePessoa) {
             try {
                 const url = getDbPath(nomePessoa) + "?t=" + Date.now();
-                const res = await fetch(url);
+                const res = await fetch(url, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && typeof data === 'string' && data.trim().length > 0) {
@@ -392,28 +571,21 @@
             return null;
         }
 
-        async function abrirListaPresentes(exibirBotaoConfirmar) {
+        function formatarTextoDesejoAmigo(amigoWish, nomeAmigo) {
+            if (!amigoWish || amigoWish === FLAG_SEM_SUGESTAO) {
+                return "⏳ " + nomeAmigo + " ainda não cadastrou a sugestão de presente. Volte mais tarde para consultar!";
+            }
+            return amigoWish;
+        }
+
+        async function abrirListaPresentes() {
             esconderTodasEtapas();
             document.getElementById('amigoDesejoTitulo').innerText = "🎁 O que " + parsedData.amigo + " (seu amigo secreto) quer ganhar:";
             document.getElementById('amigoDesejoTexto').innerText = "Buscando na nuvem...";
-
-            const btnWhats = document.getElementById('btnConfirmarWhatsApp');
-            if (exibirBotaoConfirmar && parsedData.adminTel) {
-                let tel = parsedData.adminTel.replace(/\D/g, '');
-                if (!tel.startsWith('55')) tel = '55' + tel;
-                const msg = encodeURIComponent(`Olá! Sou ${parsedData.para} e confirmo que já vi meu Amigo Secreto e cadastrei minha lista no site! 🤫🎄`);
-                btnWhats.href = `https://api.whatsapp.com/send?phone=${tel}&text=${msg}`;
-                btnWhats.style.display = 'inline-flex';
-            } else {
-                btnWhats.style.display = 'none';
-            }
-
             document.getElementById('step4').style.display = 'block';
 
             const amigoWish = await buscarDesejoNuvem(parsedData.amigo);
-            document.getElementById('amigoDesejoTexto').innerText = amigoWish
-                ? amigoWish
-                : "⏳ " + parsedData.amigo + " ainda não cadastrou a lista de desejos no site. Volte mais tarde para consultar!";
+            document.getElementById('amigoDesejoTexto').innerText = formatarTextoDesejoAmigo(amigoWish, parsedData.amigo);
         }
     </script>
 </body>
