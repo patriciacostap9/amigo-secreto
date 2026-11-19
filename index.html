@@ -189,7 +189,7 @@
                 🎁 Ver o que meu amigo deseja de presente
             </button>
 
-            <button class="btn-action" onclick="exibirPasso2(true)">
+            <button class="btn-action" onclick="exibirPasso2()">
                 🤫 Ver novamente com quem eu saí
             </button>
 
@@ -254,6 +254,7 @@
         const FLAG_SEM_SUGESTAO = "__SEM_SUGESTAO__";
 
         let parsedData = null;
+        let localDoneKey = "";
 
         function capitalizarNome(str) {
             return (str || "")
@@ -319,17 +320,19 @@
                 .replace(/[^a-zA-Z0-9]/g, "");
         }
 
+        function getChaveSorteio() {
+            return normalizarChave(parsedData.para) + "_" + normalizarChave(parsedData.amigo);
+        }
+
         function getDesejoDbPath(nomePessoa) {
             const g = normalizarChave(parsedData ? parsedData.groupId : "default");
             const n = normalizarChave(nomePessoa);
             return `${FIREBASE_URL}/grupos/${g}/desejos/${n}.json`;
         }
 
-        // Chave única por sorteio (grupo + participante + amigo sorteado) para registrar que abriu/confirmou
         function getConfirmacaoDbPath() {
             const g = normalizarChave(parsedData ? parsedData.groupId : "default");
-            const chaveSorteio = normalizarChave(parsedData.para) + "_" + normalizarChave(parsedData.amigo);
-            return `${FIREBASE_URL}/grupos/${g}/confirmados/${chaveSorteio}.json`;
+            return `${FIREBASE_URL}/grupos/${g}/confirmados/${getChaveSorteio()}.json`;
         }
 
         function alternarSemSugestao() {
@@ -349,12 +352,19 @@
         }
 
         async function verificarSeJaAbriuAntes() {
+            if (localDoneKey && localStorage.getItem(localDoneKey) === "1") {
+                return true;
+            }
             try {
                 const url = getConfirmacaoDbPath() + "?t=" + Date.now();
                 const res = await fetch(url, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
-                    return data !== null && data !== false;
+                    const aberto = data !== null && data !== false;
+                    if (aberto && localDoneKey) {
+                        localStorage.setItem(localDoneKey, "1");
+                    }
+                    return aberto;
                 }
             } catch (e) {}
             return false;
@@ -373,6 +383,8 @@
                 return;
             }
 
+            localDoneKey = "amigo_v2_" + normalizarChave(parsedData.groupId) + "_" + getChaveSorteio();
+
             if (parsedData.valorPresente) {
                 document.getElementById('valorTxt').innerText = parsedData.valorPresente;
                 document.getElementById('valorBox').style.display = 'inline-block';
@@ -382,10 +394,8 @@
 
             const jaAbriuAntes = await verificarSeJaAbriuAntes();
             if (jaAbriuAntes) {
-                // 2ª vez ou mais: abre direto no menu
                 mostrarMenu();
             } else {
-                // 1ª vez: abre na tela de sugerir presente
                 document.getElementById('welcomeSaudacao').innerText = "Olá, " + parsedData.para + "! 🎅";
                 esconderTodasEtapas();
                 document.getElementById('step1').style.display = 'block';
@@ -415,7 +425,6 @@
             btn.innerText = "Salvando e revelando...";
 
             try {
-                // 1. Salva a sugestão (ou flag) no Firebase
                 const resDesejo = await fetch(getDesejoDbPath(parsedData.para), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -424,7 +433,6 @@
                 });
                 if (!resDesejo.ok) throw new Error("Erro ao salvar sugestão");
 
-                // 2. Grava a confirmação para o aplicativo do organizador atualizar
                 const resConfirm = await fetch(getConfirmacaoDbPath(), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -436,6 +444,10 @@
                     })
                 });
                 if (!resConfirm.ok) throw new Error("Erro ao registrar confirmação");
+
+                if (localDoneKey) {
+                    localStorage.setItem(localDoneKey, "1");
+                }
             } catch (e) {
                 errorInitial.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorInitial.style.display = 'block';
