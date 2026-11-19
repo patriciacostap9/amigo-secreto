@@ -176,7 +176,7 @@
             💰 Valor do presente: <span id="valorTxt"></span>
         </div>
 
-        <!-- BOAS-VINDAS + SUGESTÃO ANTES DE REVELAR (PRIMEIRA ABERTURA) -->
+        <!-- PRIMEIRA TELA AO ABRIR O LINK: SUGESTÃO OU FLAG -->
         <div id="step1" class="step-box" style="display: block;">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="welcomeSaudacao">Carregando...</p>
             <p style="font-size: 13px; color: #555;">Antes de revelar quem você tirou, cadastre sua sugestão de presente para facilitar a vida de quem te tirou! 🎁</p>
@@ -197,9 +197,13 @@
             <button id="btnRevelarEConfirmar" class="btn-action" onclick="revelarEConfirmar()">
                 🎁 Ver Meu Amigo Secreto e Confirmar
             </button>
+
+            <button class="btn-action btn-outline" onclick="mostrarMenu()">
+                Já preenchi antes • Ir para o Menu
+            </button>
         </div>
 
-        <!-- MENU PRINCIPAL (QUANDO ENTRA NOVAMENTE) -->
+        <!-- MENU PRINCIPAL -->
         <div id="stepMenu" class="step-box">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 700;" id="menuSaudacao"></p>
             <p style="font-size: 13px; color: #666;">O que você deseja fazer agora?</p>
@@ -217,7 +221,7 @@
             </button>
         </div>
 
-        <!-- PASSO 2: REVELAÇÃO DO AMIGO SORTEADO -->
+        <!-- REVELAÇÃO DO AMIGO SORTEADO -->
         <div id="step2" class="step-box">
             <p style="font-size: 16px; color: #1b5e20; font-weight: 600;" id="tiradorNome"></p>
             <div style="font-size: 14px; color: #666; margin-top: 6px;">Seu Amigo Secreto é:</div>
@@ -239,7 +243,7 @@
             </button>
         </div>
 
-        <!-- PASSO 3: EDIÇÃO DA PRÓPRIA LISTA -->
+        <!-- EDIÇÃO DA PRÓPRIA LISTA -->
         <div id="step3" class="step-box">
             <h2 style="font-size: 16px; color: #b71c1c; margin-bottom: 6px;">🎁 O que VOCÊ quer ganhar?</h2>
             <p style="font-size: 12px; color: #555;">Escreva ou atualize sua lista de sugestões de presente abaixo:</p>
@@ -255,7 +259,7 @@
             </button>
         </div>
 
-        <!-- PASSO 4: SOMENTE A SUGESTÃO DE PRESENTE DO AMIGO SECRETO -->
+        <!-- SUGESTÃO DE PRESENTE DO AMIGO SECRETO -->
         <div id="step4" class="step-box">
             <h2 style="font-size: 17px; color: #1b5e20; margin-bottom: 6px;">🎁 Sugestão de Presente</h2>
 
@@ -280,7 +284,6 @@
         const FLAG_SEM_SUGESTAO = "__SEM_SUGESTAO__";
 
         let parsedData = null;
-        let storageKeyDone = "";
 
         function capitalizarNome(str) {
             return (str || "")
@@ -377,7 +380,7 @@
             return `https://api.whatsapp.com/send?phone=${tel}&text=${msg}`;
         }
 
-        async function inicializarPagina() {
+        function inicializarPagina() {
             resetarCamposFormulario();
             parsedData = parsePayload();
             if (!parsedData) {
@@ -394,21 +397,9 @@
                 document.getElementById('valorBox').style.display = 'none';
             }
 
-            // Chave isolada por grupo + participante + amigo sorteado para evitar conflito entre links distintos
-            const baseKey = normalizarChave(parsedData.groupId) + "_" + normalizarChave(parsedData.para) + "_" + normalizarChave(parsedData.amigo);
-            storageKeyDone = "amigo_done_" + baseKey;
-
             document.getElementById('welcomeSaudacao').innerText = "Olá, " + parsedData.para + "! 🎅";
-
-            const jaConcluiuLocal = localStorage.getItem(storageKeyDone) === "1";
-            const desejoNuvem = await buscarDesejoNuvem(parsedData.para);
-            if (jaConcluiuLocal || desejoNuvem) {
-                localStorage.setItem(storageKeyDone, "1");
-                mostrarMenu();
-            } else {
-                esconderTodasEtapas();
-                document.getElementById('step1').style.display = 'block';
-            }
+            esconderTodasEtapas();
+            document.getElementById('step1').style.display = 'block';
         }
 
         function forcarAtualizacaoLink() {
@@ -450,8 +441,6 @@
                 if (!res.ok) {
                     throw new Error("Erro HTTP " + res.status);
                 }
-
-                localStorage.setItem(storageKeyDone, "1");
             } catch (e) {
                 errorInitial.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorInitial.style.display = 'block';
@@ -541,8 +530,6 @@
                 if (!res.ok) {
                     throw new Error("Erro HTTP " + res.status);
                 }
-
-                localStorage.setItem(storageKeyDone, "1");
             } catch (e) {
                 errorWish.innerText = "⚠️ Erro ao salvar na nuvem. Verifique sua conexão.";
                 errorWish.style.display = 'block';
